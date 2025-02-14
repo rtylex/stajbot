@@ -3,3 +3,4 @@ gunicorn
 openai
 PyMuPDF
 PyPDF2
+python-dotenv
