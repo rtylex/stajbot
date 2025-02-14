@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staj Bilgi Botu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #eef2ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 480px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            padding: 18px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .chat-body {
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background: #f9fafb;
+        }
+
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 16px 16px 0 16px;
+            max-width: 75%;
+            font-size: 14px;
+        }
+
+        .assistant-message {
+            align-self: flex-start;
+            background: white;
+            color: #1e293b;
+            padding: 12px 16px;
+            border-radius: 16px 16px 16px 0;
+            max-width: 75%;
+            font-size: 14px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 16px;
+            background: white;
+            border-top: 1px solid rgba(226, 232, 240, 0.8);
+            gap: 12px;
+        }
+
+        #question {
+            flex-grow: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        #askButton {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        /* Yükleniyor efekti (Typing Dots) */
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .typing-dots div {
+            width: 8px;
+            height: 8px;
+            background: #4f46e5;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+
+        .typing-dots div:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots div:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">Staj Bilgi Botu</div>
+
+        <div class="chat-body" id="chatBody">
+            <div class="message-container">
+                <div class="assistant-message">
+                    Merhaba! Staj ile ilgili aklına takılan soruları sorabilirsin. 💼
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="question" placeholder="Sorunuzu yazın...">
+            <button id="askButton" onclick="askQuestion()">Gönder</button>
+        </div>
+    </div>
+
+    <script>
+        async function askQuestion() {
+            const questionInput = document.getElementById('question');
+            const chatBody = document.getElementById('chatBody');
+            const question = questionInput.value.trim();
+
+            if (!question) return;
+
+            // Kullanıcının mesajını ekle
+            chatBody.innerHTML += `<div class="user-message">${question}</div>`;
+
+            // "Yazıyor..." animasyonunu ekle
+            const typingIndicator = document.createElement('div');
+            typingIndicator.classList.add('assistant-message');
+            typingIndicator.innerHTML = `
+                <div class="typing-dots">
+                    <div></div><div></div><div></div>
+                </div>
+            `;
+            chatBody.appendChild(typingIndicator);
+            chatBody.scrollTop = chatBody.scrollHeight;
+            questionInput.value = '';
+
+            try {
+                // Sunucuya API isteği yap
+                const response = await fetch('/ask-question', {
+                    method: 'POST',
+                    body: new URLSearchParams({ question }),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                });
+
+                const data = await response.json();
+                chatBody.removeChild(typingIndicator);
+
+                // API'den gelen cevabı ekle
+                chatBody.innerHTML += `<div class="assistant-message">${data.answer}</div>`;
+            } catch (error) {
+                chatBody.removeChild(typingIndicator);
+                chatBody.innerHTML += `<div class="assistant-message">❌ Hata: Sunucuya bağlanılamadı.</div>`;
+            }
+
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        document.getElementById('question').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') askQuestion();
+        });
+    </script>
+</body>
+</html>
